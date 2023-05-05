@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <sys/mman.h>
 #include <stdio.h>
 #include "bmalloc.h" 
 
@@ -13,12 +14,50 @@ void * sibling (void * h)
 int fitting (size_t s) 
 {
 	// TODO
+	int size;
+	if(2047 < s) {
+		size = 12 ;
+	}
+	else if(1023 < s) {
+		size = 11 ;
+	}
+	else if (511 < s) {
+		size = 10 ;
+	}
+	else if (255 < s) {
+		size = 9;
+	}
+	else if (127 < s) {
+		size = 8;
+	}
+	else if (63 < s) {
+		size = 7;
+	}
+	else if (31 < s) {
+		size = 6;
+	}
+	else if (15 < s) {
+		size = 5;
+	}
+	else {
+		size = 4;
+	}
+	return size;
 }
 
 void * bmalloc (size_t s) 
 {
-	// TODO 
-	return 0x0 ; // erase this
+	// TODO
+	bm_header_ptr header;
+	header = (bm_header_ptr)mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+	if (header == MAP_FAILED) {
+		return 0x0;
+	}
+	header->size = 12;
+	header->used = 0;
+	header->next = 0x0;
+	bm_list_head.next = header;
+	return header ; // erase this
 }
 
 void bfree (void * p) 
@@ -58,3 +97,4 @@ bmprint ()
 
 	//TODO: print out the stat's.
 }
+
