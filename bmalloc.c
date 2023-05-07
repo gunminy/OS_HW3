@@ -14,29 +14,30 @@ void * sibling (void * h)
 int fitting (size_t s) 
 {
 	// TODO
+	// header is 9 bytes
 	int size;
-	if(2047 < s) {
+	if(2039 < s) {
 		size = 12 ;
 	}
-	else if(1023 < s) {
+	else if(1015 < s) {
 		size = 11 ;
 	}
-	else if (511 < s) {
+	else if (503 < s) {
 		size = 10 ;
 	}
-	else if (255 < s) {
+	else if (247 < s) {
 		size = 9;
 	}
-	else if (127 < s) {
+	else if (119 < s) {
 		size = 8;
 	}
-	else if (63 < s) {
+	else if (55 < s) {
 		size = 7;
 	}
-	else if (31 < s) {
+	else if (23 < s) {
 		size = 6;
 	}
-	else if (15 < s) {
+	else if (7 < s) {
 		size = 5;
 	}
 	else {
@@ -49,15 +50,21 @@ void * bmalloc (size_t s)
 {
 	// TODO
 	bm_header_ptr header;
-	header = (bm_header_ptr)mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+
+	header = (bm_header_ptr)mmap(NULL, 4096, 
+								PROT_READ | PROT_WRITE,
+								MAP_ANONYMOUS | MAP_SHARED, -1, 0);
 	if (header == MAP_FAILED) {
 		return 0x0;
 	}
 	header->size = 12;
 	header->used = 0;
 	header->next = 0x0;
+	
 	bm_list_head.next = header;
-	return header ; // erase this
+	
+
+	return (void*)(header+1); 
 }
 
 void bfree (void * p) 
