@@ -88,7 +88,7 @@ void * bmalloc (size_t s)
 		selectedHeader->size = 12;
 		selectedHeader->next = 0x0;
 		if (bm_list_head.next != 0x0) {
-			prev_itr = selectedHeader;
+			prev_itr->next = selectedHeader;
 		}
 		else {
 			bm_list_head.next = selectedHeader;
