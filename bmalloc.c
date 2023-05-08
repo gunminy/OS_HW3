@@ -7,8 +7,10 @@ bm_option bm_mode = BestFit ;
 bm_header bm_list_head = {0, 0, 0x0 } ;
 
 void * sibling (void * h)
-{
+{	
 	// TODO
+	bm_header_ptr temp = (bm_header_ptr)h;
+	return temp->next;
 }
 
 int fitting (size_t s) 
@@ -49,22 +51,64 @@ int fitting (size_t s)
 void * bmalloc (size_t s) 
 {
 	// TODO
-	bm_header_ptr header;
+	bm_header_ptr selectedHeader;
+	bm_header_ptr itr,prev_itr;
+	void* addressPtr;
 
-	header = (bm_header_ptr)mmap(NULL, 4096, 
-								PROT_READ | PROT_WRITE,
-								MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-	if (header == MAP_FAILED) {
-		return 0x0;
+	//Check if a fitting block exists 
+	//And search a smallest block among all unused blocks
+	int pageNeeded = 1;
+	int fitSize = fitting(s);
+	int existMinSize = 13; //max is 12
+	for (itr = bm_list_head.next ; itr != 0x0 ; itr = itr->next) {
+		prev_itr = itr;// for search last block
+		if (fitSize <= itr->size && itr->used==0) {
+			if (itr->size < existMinSize) {
+				existMinSize = itr->size; 
+				selectedHeader = itr;
+			}
+			pageNeeded = 0;
+			if (bm_mode == FirstFit) {
+				break;
+			}
+		}
 	}
-	header->size = 12;
-	header->used = 0;
-	header->next = 0x0;
 	
-	bm_list_head.next = header;
-	
+	// If fitting block doesn't exist, get 4KB page.
+	if (pageNeeded == 1) {
+		addressPtr = (void *)mmap(NULL, 4096,
+									PROT_READ | PROT_WRITE,
+									MAP_ANONYMOUS | MAP_SHARED, -1, 0
+									);
+		if (addressPtr== MAP_FAILED) {
+			return 0x0;
+		}
+		selectedHeader = (bm_header_ptr)addressPtr;
+		selectedHeader->used = 0;
+		selectedHeader->size = 12;
+		selectedHeader->next = 0x0;
+		if (bm_list_head.next != 0x0) {
+			prev_itr = selectedHeader;
+		}
+		else {
+			bm_list_head.next = selectedHeader;
+		}
+	}
 
-	return (void*)(header+1); 
+	//divides selected block to get a fitting block.
+	bm_header_ptr temp;
+	while (selectedHeader->size > fitSize) {
+		selectedHeader->size = selectedHeader->size - 1;
+		int blockBytes = 1 << selectedHeader->size; // 2^(N-1)
+		temp = (bm_header_ptr)((char*)selectedHeader + blockBytes);
+		temp->used = 0;
+		temp->size = selectedHeader->size;
+		temp->next = selectedHeader->next;
+		selectedHeader->next = temp;
+	}
+
+	selectedHeader->used = 1;
+	return (void*)((char*)selectedHeader+9); //bm_header is 9 bytes. 
 }
 
 void bfree (void * p) 
