@@ -6,11 +6,14 @@
 bm_option bm_mode = BestFit ;
 bm_header bm_list_head = {0, 0, 0x0 } ;
 
-void * sibling (void * h)
+void * sibling (void * h) 
 {	
 	// TODO
+	// The address of a block's "buddy" is equal to the bitwise exclusive OR (XOR) 
+	// of the block's address and the block's size.
 	bm_header_ptr temp = (bm_header_ptr)h;
-	return temp->next;
+	long int size = 1 << temp->size;
+	return (void*)((long int)temp ^ size);
 }
 
 int fitting (size_t s) 
@@ -113,7 +116,43 @@ void * bmalloc (size_t s)
 
 void bfree (void * p) 
 {
-	// TODO 
+	// TODO
+	bm_header_ptr header,temp;
+	header = (bm_header_ptr)((char*)p - 9);
+	header->used = 0;
+
+	//If sibling block is unused, Merge this block with sibling
+	
+	bm_header_ptr sib = (bm_header_ptr)sibling(header);
+	while (header->size < 12 && sib->used == 0) {		
+		if (sib->next == header) {
+			//changes position of header and sib
+			temp = sib;
+			sib = header;
+			header = temp;
+		}
+		header->next = sib->next;
+		header->size++;
+		sib = (bm_header_ptr)sibling(header);
+	}
+
+	//unmaps (releases) a page if whole page becomes unused.
+	if (header->size == 12) {
+		if (bm_list_head.next == header) {
+			bm_list_head.next = header->next;
+		}
+		else {
+			bm_header_ptr itr = bm_list_head.next;
+			while (itr->next != header) {
+				itr = itr->next;
+			}
+			itr->next = header->next;
+		}
+		if ((munmap(header, 4096)) == -1) { //releases
+			fprintf(stderr, "munmap failed with error:");
+		}
+	}
+	
 }
 
 void * brealloc (void * p, size_t s) 
@@ -125,6 +164,7 @@ void * brealloc (void * p, size_t s)
 void bmconfig (bm_option opt) 
 {
 	// TODO
+	bm_mode = opt;
 }
 
 
@@ -136,7 +176,7 @@ bmprint ()
 
 	printf("==================== bm_list ====================\n") ;
 	for (itr = bm_list_head.next, i = 0 ; itr != 0x0 ; itr = itr->next, i++) {
-		printf("%3d:%p:%1d %8d:", i, ((void *) itr) + sizeof(bm_header), (int)itr->used, (int) itr->size) ;
+		printf("%3d:%p:%1d %8d:", i, ((void *) itr) + sizeof(char)*9, (int)itr->used, (int) itr->size) ;
 
 		int j ;
 		char * s = ((char *) itr) + sizeof(bm_header) ;
