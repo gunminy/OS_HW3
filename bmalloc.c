@@ -103,7 +103,7 @@ void * bmalloc (size_t s)
 	while (selectedHeader->size > fitSize) {
 		selectedHeader->size = selectedHeader->size - 1;
 		int blockBytes = 1 << selectedHeader->size; // 2^(N-1)
-		temp = (bm_header_ptr)((char*)selectedHeader + blockBytes);
+		temp = (bm_header_ptr)((void*)selectedHeader + blockBytes);
 		temp->used = 0;
 		temp->size = selectedHeader->size;
 		temp->next = selectedHeader->next;
@@ -122,7 +122,6 @@ void bfree (void * p)
 	header->used = 0;
 
 	//If sibling block is unused, Merge this block with sibling
-	
 	bm_header_ptr sib = (bm_header_ptr)sibling(header);
 	while (header->size < 12 && sib->used == 0) {		
 		if (sib->next == header) {
@@ -148,11 +147,12 @@ void bfree (void * p)
 			}
 			itr->next = header->next;
 		}
+		/*
 		if ((munmap(header, 4096)) == -1) { //releases
 			fprintf(stderr, "munmap failed with error:");
 		}
+		*/
 	}
-	
 }
 
 void * brealloc (void * p, size_t s) 
