@@ -19,30 +19,30 @@ void * sibling (void * h)
 int fitting (size_t s) 
 {
 	// TODO
-	// header is 9 bytes
+	// header is 16 bytes
 	int size;
-	if(2039 < s) {
+	if(2032 < s) {
 		size = 12 ;
 	}
-	else if(1015 < s) {
+	else if(1008 < s) {
 		size = 11 ;
 	}
-	else if (503 < s) {
+	else if (496 < s) {
 		size = 10 ;
 	}
-	else if (247 < s) {
+	else if (240 < s) {
 		size = 9;
 	}
-	else if (119 < s) {
+	else if (112 < s) {
 		size = 8;
 	}
-	else if (55 < s) {
+	else if (48 < s) {
 		size = 7;
 	}
-	else if (23 < s) {
+	else if (16 < s) {
 		size = 6;
 	}
-	else if (7 < s) {
+	else if (0 < s) {
 		size = 5;
 	}
 	else {
@@ -111,14 +111,14 @@ void * bmalloc (size_t s)
 	}
 
 	selectedHeader->used = 1;
-	return (void*)((char*)selectedHeader+9); //bm_header is 9 bytes. 
+	return ((void*)selectedHeader) + sizeof(bm_header); //bm_header is 16 bytes. 
 }
 
 void bfree (void * p) 
 {
 	// TODO
 	bm_header_ptr header,temp;
-	header = (bm_header_ptr)((char*)p - 9);
+	header = (bm_header_ptr)(p - sizeof(bm_header));
 	header->used = 0;
 
 	//If sibling block is unused, Merge this block with sibling
@@ -176,7 +176,7 @@ bmprint ()
 
 	printf("==================== bm_list ====================\n") ;
 	for (itr = bm_list_head.next, i = 0 ; itr != 0x0 ; itr = itr->next, i++) {
-		printf("%3d:%p:%1d %8d:", i, ((void *) itr) + sizeof(char)*9, (int)itr->used, (int) itr->size) ;
+		printf("%3d:%p:%1d %8d:", i, ((void*)itr) + sizeof(bm_header), (int)itr->used, (int) itr->size) ;
 
 		int j ;
 		char * s = ((char *) itr) + sizeof(bm_header) ;
