@@ -7,7 +7,7 @@ struct _bm_header {
 	unsigned int used : 1 ;
 	unsigned int size : 4 ;
 	struct _bm_header * next ;
-} ;
+}__attribute__((packed));
 
 typedef struct _bm_header 	bm_header ;
 typedef struct _bm_header *	bm_header_ptr ;
@@ -22,3 +22,4 @@ void * brealloc (void * p, size_t s) ;
 void bmconfig (bm_option opt) ;
 
 void bmprint () ;
+
