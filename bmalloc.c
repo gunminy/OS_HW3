@@ -167,7 +167,71 @@ void bfree(void* p)
 void* brealloc(void* p, size_t s)
 {
 	// TODO
-	return 0x0; // erase this 
+	
+	// If p is a null pointer, brealloc() shall be equivalent to
+    // bmalloc() for the specified size.
+	if (p == 0x0) {
+		return bmalloc(s);
+	}
+	if (s <= 0) {
+		bfree(p);
+		return 0x0;
+	}
+
+	bm_header_ptr header, temp;
+	header = (bm_header_ptr)(p - sizeof(bm_header));
+	int requiredSize = fitting(s) ;
+
+	if (requiredSize <= header->size) { //Required block size is smaller than current block size
+		//divides selected block to get a fitting block.
+		while (header->size > requiredSize) {
+			header->size = header->size - 1;
+			int blockBytes = 1 << header->size; // 2^(N-1)
+			temp = (bm_header_ptr)((void*)header + blockBytes);
+			temp->used = 0;
+			temp->size = header->size;
+			temp->next = header->next;
+			header->next = temp;
+		}
+		return p;
+	}
+	
+	//Check if memory space can be fetched from sibling block
+	int availableSize = header->size;
+	bm_header_ptr sib = (bm_header_ptr)sibling(header);
+	while (header->size < 12 && sib->used == 0) {
+		if (sib->next == header) {
+			// If sibling and header are not in order, 
+			// we cannot prevent the migration of header data.
+			// Memory expansion is not allowed in this way.
+			break;
+		}
+		header->size++;
+		availableSize++;
+		sib = (bm_header_ptr)sibling(header);
+	}
+
+	// If memory expansion is available, merge with sibling and return payload.
+	if (availableSize >= requiredSize) {
+		header->size--;
+		sib = (bm_header_ptr)sibling(header);
+		header->next = sib->next;
+		header->size++;
+		return p;
+	}
+
+	// If not, create a new block with bmalloc, copy data equal to the 
+	// size of the original block, and bfree the original block.
+	void* src = p;/* memory address of data source*/;
+	void* dest = bmalloc(s)/* memory address of data destination*/;
+	size_t copyNum = (1 << header->size) - sizeof(bm_header)/* number of bytes to copy */;
+	char* c_src = (char*)src;
+	char* c_dest = (char*)dest;
+	for (size_t i = 0; i < copyNum; i++) {
+		c_dest[i] = c_src[i];
+	}
+	bfree(src);
+	return dest;
 }
 
 void bmconfig(bm_option opt)
